@@ -38,6 +38,20 @@
   .cat-list .cat-empty { color: #99a; font-style: italic; }
   .cat-list a { color: #1b3a5c; }
 
+  /* Badge marking a link as "opens a PDF in a new tab" — text, not just an
+     icon, so it reads clearly even without colour (and to screen readers).
+     Applied automatically to any .cat-list link ending in .pdf via ::after,
+     so a document added later needs no extra markup to get the badge; the
+     two Key Documents cards below get an equivalent one added by hand next
+     to their title, since ::after on those would land after the whole card
+     (title + subtitle), not next to the title where it reads best. */
+  .pdf-badge, .cat-list a[href$=".pdf"]::after {
+    display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
+    background: #d8e4f0; color: #1b3a5c; border-radius: 4px; padding: 1px 5px;
+    margin-left: 5px; vertical-align: middle; text-transform: uppercase;
+  }
+  .cat-list a[href$=".pdf"]::after { content: "PDF \2197"; }
+
   table.committee { width: 100%; border-collapse: collapse; font-size: 14px; }
   table.committee th, table.committee td { text-align: left; padding: 7px 8px; border-top: 1px solid #eef1f4; }
   table.committee th { color: #789; font-weight: 600; font-size: 11px; text-transform: uppercase; }
@@ -63,12 +77,12 @@
   <section>
     <h2>Key Documents</h2>
     <div class="key-docs">
-      <a class="key-doc-btn" href="Bye-Laws/ARWA-Bye-Laws-Latest.pdf">
-        <div class="t">Approved Bye-Laws</div>
+      <a class="key-doc-btn" href="Bye-Laws/ARWA-Bye-Laws-Latest.pdf" target="_blank" rel="noopener">
+        <div class="t">Approved Bye-Laws <span class="pdf-badge">PDF &#8599;</span></div>
         <div class="s">Current version, always up to date at this link</div>
       </a>
-      <a class="key-doc-btn" href="Good-Living-Guidelines/ARWA-Good-Living-Guidelines-Latest.pdf">
-        <div class="t">Good Living Guidelines</div>
+      <a class="key-doc-btn" href="Good-Living-Guidelines/ARWA-Good-Living-Guidelines-Latest.pdf" target="_blank" rel="noopener">
+        <div class="t">Good Living Guidelines <span class="pdf-badge">PDF &#8599;</span></div>
         <div class="s">Guidelines for residents within the complex</div>
       </a>
     </div>
@@ -78,17 +92,17 @@
     <h2>All Documents</h2>
     <ul class="cat-list">
       <li><span class="cat-name">Bye-Laws</span> &mdash;
-        <a href="Bye-Laws/ARWA-Bye-Laws-v1.1-Approved-2023-08-27-EGM.pdf">v1.1, approved EGM 27-Aug-2023</a>
+        <a href="Bye-Laws/ARWA-Bye-Laws-v1.1-Approved-2023-08-27-EGM.pdf" target="_blank" rel="noopener">v1.1, approved EGM 27-Aug-2023</a>
         (family member of owner now eligible for MC) &middot;
-        <a href="Bye-Laws/ARWA-Bye-Laws-Approved-2021-EGM.pdf">original, approved EGM 2021</a></li>
+        <a href="Bye-Laws/ARWA-Bye-Laws-Approved-2021-EGM.pdf" target="_blank" rel="noopener">original, approved EGM 2021</a></li>
       <li><span class="cat-name">Good Living Guidelines</span> &mdash;
-        <a href="Good-Living-Guidelines/ARWA-Good-Living-Guidelines.pdf">Current version</a></li>
+        <a href="Good-Living-Guidelines/ARWA-Good-Living-Guidelines.pdf" target="_blank" rel="noopener">Current version</a></li>
       <li><span class="cat-name">AGM Minutes</span> &mdash;
         <span class="cat-empty">will be listed here once uploaded</span></li>
       <li><span class="cat-name">Audited Balance Sheets</span> &mdash;
-        <a href="Audited-Balance-Sheets/ARWA-Balance-Sheet-FY2024-25.pdf">FY2024-25</a> &middot;
-        <a href="Audited-Balance-Sheets/ARWA-Balance-Sheet-FY2023-24.pdf">FY2023-24</a> &middot;
-        <a href="Audited-Balance-Sheets/ARWA-Balance-Sheet-FY2022-23.pdf">FY2022-23</a></li>
+        <a href="Audited-Balance-Sheets/ARWA-Balance-Sheet-FY2024-25.pdf" target="_blank" rel="noopener">FY2024-25</a> &middot;
+        <a href="Audited-Balance-Sheets/ARWA-Balance-Sheet-FY2023-24.pdf" target="_blank" rel="noopener">FY2023-24</a> &middot;
+        <a href="Audited-Balance-Sheets/ARWA-Balance-Sheet-FY2022-23.pdf" target="_blank" rel="noopener">FY2022-23</a></li>
       <li><span class="cat-name">Circulars &amp; Notices</span> &mdash;
         <span class="cat-empty">will be listed here once uploaded</span></li>
       <li><span class="cat-name">Committee Resolutions</span> &mdash;

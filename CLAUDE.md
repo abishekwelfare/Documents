@@ -155,12 +155,37 @@ the association, not an oversight — don't add personal details even if asked f
 
 ---
 
+## PDF links open in a new tab, with a "PDF ↗" badge (added 2026-07-29)
+
+Every link to a PDF on `index.html` carries `target="_blank" rel="noopener"` (new
+tab; `rel="noopener"` so the new tab can't reach back into this page via
+`window.opener` — standard practice whenever `target="_blank"` is used) and a
+small visible badge so visitors know before clicking that it opens/downloads a
+file rather than navigating within the site.
+
+- **"All Documents" list** (`.cat-list`) — the badge is CSS-generated
+  (`.cat-list a[href$=".pdf"]::after`), so it appears automatically on any link
+  ending in `.pdf` added there in the future. Only `target="_blank" rel="noopener"`
+  needs adding by hand on a new link; the badge takes care of itself.
+- **"Key Documents" cards** (`.key-doc-btn`) — these need the badge added
+  explicitly, `<span class="pdf-badge">PDF &#8599;</span>` next to the title —
+  the CSS `::after` trick would land after the whole card (title + subtitle),
+  not next to the title where it reads best, so it isn't used there.
+
+If a non-PDF link is ever added to `.cat-list` (unlikely, but e.g. a link to an
+external page), don't give it `target="_blank"` by default — only PDFs get that,
+since only PDFs are a "leaves the page to open/download a file" action; a normal
+internal or informational link shouldn't force a new tab.
+
+---
+
 ## Adding a new document — checklist
 
 1. Copy the PDF into the right category folder, named with a clear date/FY, e.g.
    `Audited-Balance-Sheets/ARWA-Balance-Sheet-FY2025-26.pdf`.
 2. If it belongs in a category already listed on the homepage, add a link to it in
-   `index.html`'s "All Documents" section.
+   `index.html`'s "All Documents" section, with `target="_blank" rel="noopener"`
+   (see PDF link convention above — the badge appears on its own for this section).
 3. If it supersedes a "latest"-linked document, repoint the `*-Latest.pdf` symlink
    (see mechanism above) — don't just add the new file and leave the old one linked.
 4. Stage explicitly (never `git add -A`), commit, push. The live site updates within

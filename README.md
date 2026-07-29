@@ -22,7 +22,12 @@ Live site: https://abishekwelfare.github.io/Documents/
 1. Drop the PDF into the right category folder, named clearly with a date/FY, e.g.
    `Audited-Balance-Sheets/ARWA-Balance-Sheet-FY2025-26.pdf`.
 2. If it belongs in a category listed on the homepage (`index.html`), add a link
-   to it there.
+   to it in the "All Documents" section, with `target="_blank" rel="noopener"` —
+   every PDF link should open in a new tab. The small "PDF ↗" badge next to it
+   appears automatically (CSS, matches any link ending in `.pdf` in that list) —
+   no extra markup needed for that part. The "Key Documents" cards at the top
+   need the badge added by hand instead (`<span class="pdf-badge">PDF ↗</span>`
+   next to the title) since they're outside that auto-styled list.
 3. If it's a new version of a "latest"-linked document (Bye-Laws, Good Living
    Guidelines), repoint the `-Latest.pdf` symlink to the new file (see below).
 4. `git add`, `git commit`, `git push` — the live site updates within a minute
