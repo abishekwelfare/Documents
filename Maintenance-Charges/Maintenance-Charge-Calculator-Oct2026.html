@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARWA Maintenance Charge Calculator</title>
+<style>
+  :root {
+    --bg: #f4f6f8;
+    --surface: #ffffff;
+    --ink: #17202b;
+    --muted: #5a7a99;
+    --brand: #1b3a5c;
+    --brand-soft: #eef3f8;
+    --line: #dbe4ee;
+    --accent: #14705a;
+    --accent-soft: #e6f2ee;
+    --warn-bg: #fbeed3;
+    --warn-line: #e8c877;
+    --warn-ink: #7a5300;
+    --focus: #2f6fb3;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #10161f;
+      --surface: #172231;
+      --ink: #e7edf5;
+      --muted: #93aec8;
+      --brand: #cfe0f2;
+      --brand-soft: #1e2c3f;
+      --line: #2b3a4f;
+      --accent: #4bcaa8;
+      --accent-soft: #16332c;
+      --warn-bg: #33280f;
+      --warn-line: #6b501c;
+      --warn-ink: #e8c877;
+      --focus: #6fb0ea;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+    line-height: 1.5;
+  }
+  .num {
+    font-family: ui-monospace, SFMono-Regular, 'Cascadia Code', Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  header.top {
+    background: var(--brand); color: #fff; padding: 26px 20px 22px;
+  }
+  @media (prefers-color-scheme: dark) { header.top { color: #0d1420; } }
+  header.top .wrap { max-width: 720px; margin: 0 auto; }
+  header.top .back {
+    display: inline-block; font-size: 12.5px; color: inherit; opacity: 0.78;
+    text-decoration: none; margin-bottom: 10px;
+  }
+  header.top .back:hover { opacity: 1; text-decoration: underline; }
+  header.top h1 { margin: 0 0 6px; font-size: 21px; text-wrap: balance; }
+  header.top p { margin: 0; font-size: 13.5px; opacity: 0.82; }
+
+  main { max-width: 720px; margin: 0 auto; padding: 22px 20px 60px; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 20px 22px; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(20, 30, 45, 0.05);
+  }
+  .card h2 {
+    margin: 0 0 4px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--muted); font-weight: 700;
+  }
+  .card .lede { margin: 0 0 16px; font-size: 13px; color: var(--muted); }
+
+  .selectors {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px;
+  }
+  @media (max-width: 520px) { .selectors { grid-template-columns: 1fr; } }
+
+  .field label {
+    display: block; font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.4px; color: var(--muted); margin-bottom: 6px;
+  }
+  .field select {
+    width: 100%; padding: 10px 12px; border-radius: 7px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--ink); font-size: 14.5px; font-family: inherit;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M1 1l6 6 6-6' stroke='%235a7a99' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+  }
+  .field select:disabled { opacity: 0.5; cursor: not-allowed; }
+  .field select:focus-visible {
+    outline: 2px solid var(--focus); outline-offset: 1px;
+  }
+
+  button.show {
+    width: 100%; padding: 11px 14px; border-radius: 7px; border: none;
+    background: var(--brand); color: #fff; font-size: 14.5px; font-weight: 700;
+    cursor: pointer; letter-spacing: 0.2px;
+  }
+  @media (prefers-color-scheme: dark) { button.show { color: #0d1420; } }
+  button.show:disabled { opacity: 0.45; cursor: not-allowed; }
+  button.show:not(:disabled):hover { filter: brightness(1.08); }
+  button.show:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+  .hint { font-size: 12px; color: var(--muted); margin-top: 10px; }
+
+  /* Result — styled as a small statement/ledger */
+  #result { display: none; }
+  #result.show { display: block; animation: reveal 0.28s ease-out; }
+  @media (prefers-reduced-motion: reduce) { #result.show { animation: none; } }
+  @keyframes reveal {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .statement-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding-bottom: 12px; margin-bottom: 12px; border-bottom: 1px solid var(--line);
+  }
+  .statement-head .flat { font-size: 19px; font-weight: 700; color: var(--brand); }
+  @media (prefers-color-scheme: dark) { .statement-head .flat { color: var(--ink); } }
+  .statement-head .area { font-size: 13px; color: var(--muted); }
+
+  .line-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 9px 0; font-size: 14.5px; gap: 12px;
+  }
+  .line-row .label { color: var(--ink); }
+  .line-row .period { font-weight: 600; }
+  .line-row .rate { display: block; font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+  .amt-wrap { text-align: right; flex-shrink: 0; }
+  .amt-wrap .amt { display: block; font-size: 15px; }
+  .amt-wrap .permonth { display: block; font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+
+  .line-row.old .amt-wrap .amt { color: var(--muted); }
+
+  .line-row.gst { background: var(--warn-bg); border-radius: 6px; padding: 8px 10px; margin: 4px 0; }
+  .line-row.gst .label, .line-row.gst .rate { color: var(--warn-ink); }
+  .line-row.gst .amt-wrap .amt { color: var(--warn-ink); font-weight: 700; }
+  .line-row.gst .amt-wrap .permonth { color: var(--warn-ink); opacity: 0.75; }
+
+  .line-row.total {
+    border-top: 2px solid var(--line); margin-top: 8px; padding-top: 13px;
+  }
+  .line-row.total .label { font-weight: 700; }
+  .line-row.total .amt-wrap .amt { font-size: 21px; font-weight: 700; color: var(--accent); }
+  .line-row.total .amt-wrap .permonth { font-size: 12.5px; }
+
+  .badge-gst {
+    display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
+    text-transform: uppercase; background: var(--warn-bg); color: var(--warn-ink);
+    border: 1px solid var(--warn-line); border-radius: 4px; padding: 1px 6px; margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  footer {
+    max-width: 720px; margin: 0 auto; padding: 0 20px 40px; font-size: 12px;
+    color: var(--muted); text-align: center;
+  }
+  footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="back" href="../index.html">&larr; ARWA Documents</a>
+    <h1>Maintenance Charge Calculator</h1>
+    <p>Abishek Residents&rsquo; Welfare Association &middot; revised rate effective Q3 FY2026&ndash;27 (Oct&ndash;Dec 2026)</p>
+  </div>
+</header>
+
+<main>
+  <div class="card">
+    <h2>Background</h2>
+    <p class="lede" style="margin-bottom:0;">
+      The AGM held on 02&nbsp;August&nbsp;2026 approved an increase in the maintenance charge
+      from &#8377;3.25 to &#8377;4.25 per sq.ft. per month, effective from the
+      Oct&ndash;Dec&nbsp;2026 quarter. Select your flat below to see your revised quarterly charge.
+      Flats with a monthly maintenance above &#8377;7,500 also attract 18% GST, as required by law.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Select your flat</h2>
+    <div class="selectors">
+      <div class="field">
+        <label for="sel-block">Block</label>
+        <select id="sel-block"><option value="">Choose&hellip;</option></select>
+      </div>
+      <div class="field">
+        <label for="sel-floor">Floor</label>
+        <select id="sel-floor" disabled><option value="">Choose&hellip;</option></select>
+      </div>
+      <div class="field">
+        <label for="sel-wing">Wing</label>
+        <select id="sel-wing" disabled><option value="">Choose&hellip;</option></select>
+      </div>
+    </div>
+    <button class="show" id="btn-show" disabled>Show my charges</button>
+    <p class="hint" id="hint">Pick a block, floor and wing to continue.</p>
+  </div>
+
+  <div class="card" id="result">
+    <div class="statement-head">
+      <span class="flat" id="r-flat">&mdash;</span>
+      <span class="area num" id="r-area">&mdash;</span>
+    </div>
+
+    <div class="line-row old">
+      <span class="label">Quarterly maintenance <span class="period">(till Sep 2026)</span><span class="rate">&#8377;3.25 / sq.ft. / month</span></span>
+      <span class="amt-wrap">
+        <span class="amt num" id="r-old">&mdash;</span>
+        <span class="permonth num" id="r-old-monthly">&mdash;</span>
+      </span>
+    </div>
+
+    <div class="line-row">
+      <span class="label">Quarterly maintenance <span class="period">(from Oct 2026)</span><span class="rate">&#8377;4.25 / sq.ft. / month</span></span>
+      <span class="amt-wrap">
+        <span class="amt num" id="r-new-base">&mdash;</span>
+        <span class="permonth num" id="r-new-base-monthly">&mdash;</span>
+      </span>
+    </div>
+
+    <div class="line-row gst" id="r-gst-row">
+      <span class="label">GST @ 18%<span class="rate">applies &mdash; monthly maintenance exceeds &#8377;7,500</span></span>
+      <span class="amt-wrap">
+        <span class="amt num" id="r-gst">&mdash;</span>
+        <span class="permonth num" id="r-gst-monthly">&mdash;</span>
+      </span>
+    </div>
+
+    <div class="line-row total">
+      <span class="label">Total payable per quarter <span class="period">(from Oct 2026)</span><span id="r-gst-badge"></span></span>
+      <span class="amt-wrap">
+        <span class="amt num" id="r-total">&mdash;</span>
+        <span class="permonth num" id="r-total-monthly">&mdash;</span>
+      </span>
+    </div>
+  </div>
+</main>
+
+<footer>
+  Abishek Residents&rsquo; Welfare Association &middot; abishekwelfare/Documents on GitHub
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  // Base64-encoded JSON: { "B2-1A": [area, oldMonthly, newMonthlyBase, gstMonthly], ... }
+  // Quarterly figures are always derived as monthly * 3 (never stored/rounded
+  // separately) so "per month" and "per quarter" can never disagree on screen.
+  var BLOB = "eyJCMi0xQSI6WzE0MjUsNDYzMiw2MDU3LDBdLCJCMi0xQiI6WzE2OTEsNTQ5Niw3MTg3LDBdLCJCMi0xQyI6WzE2NjYsNTQxNSw3MDgxLDBdLCJCMi0xRCI6WzE0MTEsNDU4Niw1OTk3LDBdLCJCMi0yQSI6WzE0MTcsNDYwNiw2MDIzLDBdLCJCMi0yQiI6WzE0MzMsNDY1OCw2MDkxLDBdLCJCMi0yQyI6WzE0MjUsNDYzMiw2MDU3LDBdLCJCMi0yRCI6WzE0MTYsNDYwMiw2MDE4LDBdLCJCMi0zQSI6WzE0MTEsNDU4Niw1OTk3LDBdLCJCMi0zQiI6WzE0MzMsNDY1OCw2MDkxLDBdLCJCMi0zQyI6WzEzOTAsNDUxOCw1OTA4LDBdLCJCMi0zRCI6WzE0MTYsNDYwMiw2MDE4LDBdLCJCMi00QSI6WzE0MTEsNDU4Niw1OTk3LDBdLCJCMi00QiI6WzEzODIsNDQ5Miw1ODc0LDBdLCJCMi00QyI6WzE0MzMsNDY1OCw2MDkxLDBdLCJCMi00RCI6WzE0MjIsNDYyMiw2MDQ0LDBdLCJCMi01QSI6WzE0MjIsNDYyMiw2MDQ0LDBdLCJCMi01QiI6WzE0MzMsNDY1OCw2MDkxLDBdLCJCMi01QyI6WzE0MjUsNDYzMiw2MDU3LDBdLCJCMi01RCI6WzE0MTYsNDYwMiw2MDE4LDBdLCJCMi02QSI6WzE0MTEsNDU4Niw1OTk3LDBdLCJCMi02QiI6WzE0MjIsNDYyMiw2MDQ0LDBdLCJCMi02QyI6WzE0MjUsNDYzMiw2MDU3LDBdLCJCMi02RCI6WzE0MTAsNDU4Myw1OTkzLDBdLCJCMi03QSI6WzE0MzMsNDY1OCw2MDkxLDBdLCJCMi03QiI6WzE0MzMsNDY1OCw2MDkxLDBdLCJCMi03QyI6WzE0MjUsNDYzMiw2MDU3LDBdLCJCMi03RCI6WzE0MTYsNDYwMiw2MDE4LDBdLCJCMi04QSI6WzE0MzAsNDY0OCw2MDc4LDBdLCJCMi04QiI6WzE0MjIsNDYyMiw2MDQ0LDBdLCJCMi04QyI6WzE0MzMsNDY1OCw2MDkxLDBdLCJCMi04RCI6WzE0MTEsNDU4Niw1OTk3LDBdLCJCMi05QUQiOlsyMTAyLDY4MzIsODkzNCwxNjA5XSwiQjItOUJDIjpbMjE2NSw3MDM3LDkyMDIsMTY1N10sIkIzLTFBIjpbMTE2MiwzNzc3LDQ5MzksMF0sIkIzLTFCIjpbMTE5MiwzODc0LDUwNjYsMF0sIkIzLTFDIjpbMTE2MiwzNzc3LDQ5MzksMF0sIkIzLTFEIjpbMTE5MiwzODc0LDUwNjYsMF0sIkIzLTJBIjpbMTE2MiwzNzc3LDQ5MzksMF0sIkIzLTJCIjpbMTE3MiwzODA5LDQ5ODEsMF0sIkIzLTJDIjpbMTE0NywzNzI4LDQ4NzUsMF0sIkIzLTJEIjpbMTE5MiwzODc0LDUwNjYsMF0sIkIzLTNBIjpbMTE0NywzNzI4LDQ4NzUsMF0sIkIzLTNCIjpbMTE5MiwzODc0LDUwNjYsMF0sIkIzLTNDIjpbMTE2MiwzNzc3LDQ5MzksMF0sIkIzLTNEIjpbMTE5MiwzODc0LDUwNjYsMF0sIkIzLTRBIjpbMTE2OSwzODAwLDQ5NjksMF0sIkIzLTRCIjpbMTE5OSwzODk3LDUwOTYsMF0sIkIzLTRDIjpbMTE2OSwzODAwLDQ5NjksMF0sIkIzLTREIjpbMTE5OSwzODk3LDUwOTYsMF0sIkIzLTVBIjpbMTE2MiwzNzc3LDQ5MzksMF0sIkIzLTVCIjpbMTE3MiwzODA5LDQ5ODEsMF0sIkIzLTVDIjpbMTE2MiwzNzc3LDQ5MzksMF0sIkIzLTVEIjpbMTE5MiwzODc0LDUwNjYsMF0sIkIzLTZBIjpbMTIxMywzOTQzLDUxNTYsMF0sIkIzLTZCIjpbMTEzNCwzNjg2LDQ4MjAsMF0sIkIzLTZDIjpbMTE0NywzNzI4LDQ4NzUsMF0sIkIzLTZEIjpbMTE5MiwzODc0LDUwNjYsMF0sIkIzLTdBIjpbMTE0NywzNzI4LDQ4NzUsMF0sIkIzLTdCIjpbMTE5MiwzODc0LDUwNjYsMF0sIkIzLTdDIjpbMTE0NywzNzI4LDQ4NzUsMF0sIkIzLTdEIjpbMTE5MiwzODc0LDUwNjYsMF0sIkIzLThBIjpbMTE3NywzODI2LDUwMDMsMF0sIkIzLThCIjpbMTE3MiwzODA5LDQ5ODEsMF0sIkIzLThDIjpbMTE3NywzODI2LDUwMDMsMF0sIkIzLThEIjpbMTIwNiwzOTIwLDUxMjYsMF0sIkIzLTlBQiI6WzIxMzQsNjkzNiw5MDcwLDE2MzNdLCJCMy05Q0QiOlsyMjU5LDczNDIsOTYwMSwxNzI5XSwiQjQtMTBBIjpbMTQyNCw0NjI4LDYwNTIsMF0sIkI0LTEwQiI6WzEwNzAsMzQ3OCw0NTQ4LDBdLCJCNC0xMEMiOlsxMDcyLDM0ODQsNDU1NiwwXSwiQjQtMTBEIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTFBIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTFCIjpbMTA1NywzNDM2LDQ0OTMsMF0sIkI0LTFDIjpbMTA3MiwzNDg0LDQ1NTYsMF0sIkI0LTFEIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTJBIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTJCIjpbMTA3MCwzNDc4LDQ1NDgsMF0sIkI0LTJDIjpbMTA3MiwzNDg0LDQ1NTYsMF0sIkI0LTJEIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTNBIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTNCIjpbMTA3MCwzNDc4LDQ1NDgsMF0sIkI0LTNDIjpbMTA3MiwzNDg0LDQ1NTYsMF0sIkI0LTNEIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTRBIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTRCIjpbMTA3MCwzNDc4LDQ1NDgsMF0sIkI0LTRDIjpbMTA3MiwzNDg0LDQ1NTYsMF0sIkI0LTREIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTVBIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTVCIjpbMTA1NywzNDM2LDQ0OTMsMF0sIkI0LTVDIjpbMTA1NywzNDM2LDQ0OTMsMF0sIkI0LTVEIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTZBIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTZCIjpbMTA3MCwzNDc4LDQ1NDgsMF0sIkI0LTZDIjpbMTA3MiwzNDg0LDQ1NTYsMF0sIkI0LTZEIjpbMTQ1MCw0NzEzLDYxNjMsMF0sIkI0LTdBIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTdCIjpbMTA3MCwzNDc4LDQ1NDgsMF0sIkI0LTdDIjpbMTA3MiwzNDg0LDQ1NTYsMF0sIkI0LTdEIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LThBIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LThCIjpbMTA3MCwzNDc4LDQ1NDgsMF0sIkI0LThDIjpbMTA1NiwzNDMyLDQ0ODgsMF0sIkI0LThEIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTlBIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTlCIjpbMTA3MCwzNDc4LDQ1NDgsMF0sIkI0LTlDIjpbMTA3MiwzNDg0LDQ1NTYsMF0sIkI0LTlEIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI1LTEwQSI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS0xMEIiOlsxMDU3LDM0MzYsNDQ5MywwXSwiQjUtMTBDIjpbMTA3MiwzNDg0LDQ1NTYsMF0sIkI1LTEwRCI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS0xQSI6WzE0MjksNDY0NSw2MDc0LDBdLCJCNS0xQiI6WzEwNzAsMzQ3OCw0NTQ4LDBdLCJCNS0xQyI6WzEwNzIsMzQ4NCw0NTU2LDBdLCJCNS0xRCI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS0yQSI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS0yQiI6WzEwNjQsMzQ1OCw0NTIyLDBdLCJCNS0yQyI6WzEwNzIsMzQ4NCw0NTU2LDBdLCJCNS0yRCI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS0zQSI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS0zQiI6WzEwNzAsMzQ3OCw0NTQ4LDBdLCJCNS0zQyI6WzEwNzIsMzQ4NCw0NTU2LDBdLCJCNS0zRCI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS00QSI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS00QiI6WzEwNzAsMzQ3OCw0NTQ4LDBdLCJCNS00QyI6WzEwNzIsMzQ4NCw0NTU2LDBdLCJCNS00RCI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS01QSI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS01QiI6WzEwNzAsMzQ3OCw0NTQ4LDBdLCJCNS01QyI6WzEwNzIsMzQ4NCw0NTU2LDBdLCJCNS01RCI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS02QSI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS02QiI6WzEwNzAsMzQ3OCw0NTQ4LDBdLCJCNS02QyI6WzEwNzIsMzQ4NCw0NTU2LDBdLCJCNS02RCI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS03QSI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS03QiI6WzEwNjQsMzQ1OCw0NTIyLDBdLCJCNS03QyI6WzEwNzIsMzQ4NCw0NTU2LDBdLCJCNS03RCI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS04QSI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS04QiI6WzEwNzAsMzQ3OCw0NTQ4LDBdLCJCNS04QyI6WzEwNzIsMzQ4NCw0NTU2LDBdLCJCNS04RCI6WzE0MjksNDY0NSw2MDc0LDBdLCJCNS05QSI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS05QiI6WzEwNzAsMzQ3OCw0NTQ4LDBdLCJCNS05QyI6WzEwNzIsMzQ4NCw0NTU2LDBdLCJCNS05RCI6WzE0MjAsNDYxNSw2MDM1LDBdfQ==";
+
+  var DATA = JSON.parse(decodeURIComponent(escape(atob(BLOB))));
+
+  // Build Block -> Floor -> [Wings] from the flat_id keys themselves,
+  // so penthouse combos (e.g. 9AD/9BC) fall out naturally with no hardcoding.
+  var TREE = {};
+  Object.keys(DATA).forEach(function (flatId) {
+    var m = /^B(\d+)-(\d+)([A-Z]+)$/.exec(flatId);
+    if (!m) return;
+    var block = m[1], floor = m[2], wing = m[3];
+    if (!TREE[block]) TREE[block] = {};
+    if (!TREE[block][floor]) TREE[block][floor] = [];
+    TREE[block][floor].push(wing);
+  });
+
+  var selBlock = document.getElementById("sel-block");
+  var selFloor = document.getElementById("sel-floor");
+  var selWing = document.getElementById("sel-wing");
+  var btnShow = document.getElementById("btn-show");
+  var hint = document.getElementById("hint");
+  var result = document.getElementById("result");
+
+  function fillOptions(select, values, placeholder) {
+    select.innerHTML = "";
+    var ph = document.createElement("option");
+    ph.value = "";
+    ph.textContent = placeholder;
+    select.appendChild(ph);
+    values.forEach(function (v) {
+      var opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = v;
+      select.appendChild(opt);
+    });
+  }
+
+  function blockKeys() {
+    return Object.keys(TREE).sort(function (a, b) { return Number(a) - Number(b); });
+  }
+  function floorKeys(block) {
+    return Object.keys(TREE[block]).sort(function (a, b) { return Number(a) - Number(b); });
+  }
+
+  fillOptions(selBlock, [], "Choose…");
+  blockKeys().forEach(function (b) {
+    var opt = document.createElement("option");
+    opt.value = b;
+    opt.textContent = "Block " + b;
+    selBlock.appendChild(opt);
+  });
+
+  function resetResult() {
+    result.classList.remove("show");
+  }
+
+  function updateShowState() {
+    btnShow.disabled = !(selBlock.value && selFloor.value && selWing.value);
+  }
+
+  selBlock.addEventListener("change", function () {
+    resetResult();
+    if (!selBlock.value) {
+      selFloor.disabled = true; selWing.disabled = true;
+      fillOptions(selFloor, [], "Choose…");
+      fillOptions(selWing, [], "Choose…");
+      hint.textContent = "Pick a block, floor and wing to continue.";
+      updateShowState();
+      return;
+    }
+    var floors = floorKeys(selBlock.value);
+    fillOptions(selFloor, floors, "Choose…");
+    selFloor.disabled = false;
+    fillOptions(selWing, [], "Choose…");
+    selWing.disabled = true;
+    hint.textContent = "Now pick your floor.";
+    updateShowState();
+  });
+
+  selFloor.addEventListener("change", function () {
+    resetResult();
+    if (!selFloor.value) {
+      selWing.disabled = true;
+      fillOptions(selWing, [], "Choose…");
+      hint.textContent = "Now pick your floor.";
+      updateShowState();
+      return;
+    }
+    var wings = TREE[selBlock.value][selFloor.value].slice().sort();
+    fillOptions(selWing, wings, "Choose…");
+    selWing.disabled = false;
+    hint.textContent = "Now pick your wing, then Show my charges.";
+    updateShowState();
+  });
+
+  selWing.addEventListener("change", function () {
+    resetResult();
+    hint.textContent = selWing.value ? "Ready — click Show my charges." : "Now pick your wing, then Show my charges.";
+    updateShowState();
+  });
+
+  function formatRupees(n) {
+    return "₹ " + n.toLocaleString("en-IN");
+  }
+
+  function setLine(prefix, monthly) {
+    document.getElementById(prefix).textContent = formatRupees(monthly * 3);
+    document.getElementById(prefix + "-monthly").textContent = formatRupees(monthly) + " / month";
+  }
+
+  btnShow.addEventListener("click", function () {
+    var flatId = "B" + selBlock.value + "-" + selFloor.value + selWing.value;
+    var row = DATA[flatId];
+    if (!row) {
+      hint.textContent = "Couldn't find " + flatId + " — please check your selection.";
+      resetResult();
+      return;
+    }
+    // Every quarterly figure below is monthly * 3 — never rounded separately —
+    // so "per month" and "per quarter" always agree exactly.
+    var area = row[0], oldMonthly = row[1], newBaseMonthly = row[2], gstMonthly = row[3];
+    var totalMonthly = newBaseMonthly + gstMonthly;
+
+    document.getElementById("r-flat").textContent = flatId;
+    document.getElementById("r-area").textContent = area.toLocaleString("en-IN") + " sq.ft.";
+    setLine("r-old", oldMonthly);
+    setLine("r-new-base", newBaseMonthly);
+
+    var gstRow = document.getElementById("r-gst-row");
+    var gstBadge = document.getElementById("r-gst-badge");
+    if (gstMonthly > 0) {
+      gstRow.style.display = "flex";
+      setLine("r-gst", gstMonthly);
+      gstBadge.innerHTML = '<span class="badge-gst">GST applies</span>';
+    } else {
+      gstRow.style.display = "none";
+      gstBadge.innerHTML = "";
+    }
+    setLine("r-total", totalMonthly);
+
+    result.classList.remove("show");
+    // Force reflow so the reveal animation re-triggers on repeated clicks.
+    void result.offsetWidth;
+    result.classList.add("show");
+    result.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  });
+})();
+</script>
+</body>
+</html>

@@ -58,6 +58,11 @@ ARWA-Documents/
 │   ├── ARWA-Balance-Sheet-FY2022-23.pdf
 │   ├── ARWA-Balance-Sheet-FY2023-24.pdf
 │   └── ARWA-Balance-Sheet-FY2024-25.pdf
+├── Maintenance-Charges/
+│   └── Maintenance-Charge-Calculator-Oct2026.html   interactive per-flat
+│                                    calculator, self-contained (Base64 JSON
+│                                    blob of area/charge data, no server) —
+│                                    see below
 ├── Circulars-Notices/                README.md only so far
 ├── Committee-Resolutions/            README.md only so far
 └── Forms/                            README.md only so far
@@ -176,6 +181,49 @@ If a non-PDF link is ever added to `.cat-list` (unlikely, but e.g. a link to an
 external page), don't give it `target="_blank"` by default — only PDFs get that,
 since only PDFs are a "leaves the page to open/download a file" action; a normal
 internal or informational link shouldn't force a new tab.
+
+---
+
+## Maintenance Charge Calculator (added 2026-08-02)
+
+`Maintenance-Charges/Maintenance-Charge-Calculator-Oct2026.html` — a standalone,
+self-contained page (same "no server, Base64 JSON blob embedded in the HTML"
+pattern as the RWA-RMS dashboards in the sibling repo) letting a resident pick
+Block / Floor / Wing and see their flat's maintenance charge, both old (till
+Sep 2026, ₹3.25/sq.ft./month) and new (from Oct 2026, ₹4.25/sq.ft./month),
+plus GST @18% where it applies.
+
+- **Data source**: `rwa_rms.db` (`flats.flat_area`) in the sibling RWA-RMS
+  repo — this repo has no DB access of its own, so the 148-flat blob was
+  computed there and pasted in by hand. If the AGM approves another rate
+  change, regenerate the blob from that DB with the same script logic (not
+  currently saved as a standalone script — reconstruct from this page's own
+  JS) and re-paste the `BLOB` constant; there's no automated sync between the
+  two repos.
+- **Base64, not real encryption**: deliberately not encrypted — for a static
+  page, any client-side "encryption" key would have to ship in the same
+  page's JS, so it wouldn't actually protect anything. The data itself (flat
+  area + charge figures only, no names/emails/phone numbers) isn't sensitive
+  enough to need more than this.
+- **Cascading dropdowns are derived, not hardcoded**: Block → Floor → Wing
+  options are built at runtime from the flat_id keys in the data blob itself
+  (regex `^B(\d+)-(\d+)([A-Z]+)$`), so penthouse wing combos (`9AD`/`9BC` in
+  Block 2, `9AB`/`9CD` in Block 3 — two flats merged into one, so a single
+  two-letter wing rather than four separate ones) fall out naturally with no
+  special-casing.
+- **Monthly-first rounding**: the blob stores only the *monthly* charge
+  (rounded up to the nearest rupee) for old, new-base, and GST; every
+  quarterly figure shown on the page is computed client-side as
+  `monthly * 3`, never rounded independently. This guarantees a resident
+  paying monthly and one paying quarterly always see figures that tie out
+  exactly (`monthly × 3 == quarterly`, by construction, verified across all
+  148 flats). The companion review spreadsheet in the RWA-RMS repo
+  (`Members-Database/Maintenance_Charge_Revision_Oct2026.xlsx`) uses the same
+  convention, so the two documents' figures agree.
+- **GST threshold**: 18% GST applies where the *new* monthly maintenance
+  exceeds ₹7,500 (CGST/SGST rule on society maintenance). At the new rate
+  this affects exactly 4 flats — all penthouses — `B2-9AD`, `B2-9BC`,
+  `B3-9AB`, `B3-9CD`; none crossed the threshold at the old rate.
 
 ---
 
