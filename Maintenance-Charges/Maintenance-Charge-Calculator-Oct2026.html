@@ -134,21 +134,26 @@
   .line-row .rate { display: block; font-size: 11.5px; color: var(--muted); margin-top: 1px; }
   .amt-wrap { text-align: right; flex-shrink: 0; }
   .amt-wrap .amt { display: block; font-size: 15px; }
-  .amt-wrap .permonth { display: block; font-size: 11.5px; color: var(--muted); margin-top: 1px; }
 
   .line-row.old .amt-wrap .amt { color: var(--muted); }
 
   .line-row.gst { background: var(--warn-bg); border-radius: 6px; padding: 8px 10px; margin: 4px 0; }
   .line-row.gst .label, .line-row.gst .rate { color: var(--warn-ink); }
   .line-row.gst .amt-wrap .amt { color: var(--warn-ink); font-weight: 700; }
-  .line-row.gst .amt-wrap .permonth { color: var(--warn-ink); opacity: 0.75; }
 
   .line-row.total {
     border-top: 2px solid var(--line); margin-top: 8px; padding-top: 13px;
   }
   .line-row.total .label { font-weight: 700; }
   .line-row.total .amt-wrap .amt { font-size: 21px; font-weight: 700; color: var(--accent); }
-  .line-row.total .amt-wrap .permonth { font-size: 12.5px; }
+
+  .monthly-guide {
+    margin-top: 14px; padding: 10px 12px; border-radius: 7px;
+    background: var(--accent-soft); color: var(--ink); font-size: 12.5px;
+    line-height: 1.5; display: none;
+  }
+  .monthly-guide.show { display: block; }
+  .monthly-guide strong { font-variant-numeric: tabular-nums; }
 
   .badge-gst {
     display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
@@ -182,6 +187,9 @@
       from &#8377;3.25 to &#8377;4.25 per sq.ft. per month, effective from the
       Oct&ndash;Dec&nbsp;2026 quarter. Select your flat below to see your revised quarterly charge.
       Flats with a monthly maintenance above &#8377;7,500 also attract 18% GST, as required by law.
+      If you pay monthly rather than quarterly, see the payment guide below your total &mdash;
+      the quarterly figure sometimes doesn't split into three equal rupee amounts, so one or two
+      months carry &#8377;1 extra to make up the difference.
     </p>
   </div>
 
@@ -215,7 +223,6 @@
       <span class="label">Quarterly maintenance <span class="period">(till Sep 2026)</span><span class="rate">&#8377;3.25 / sq.ft. / month</span></span>
       <span class="amt-wrap">
         <span class="amt num" id="r-old">&mdash;</span>
-        <span class="permonth num" id="r-old-monthly">&mdash;</span>
       </span>
     </div>
 
@@ -223,7 +230,6 @@
       <span class="label">Quarterly maintenance <span class="period">(from Oct 2026)</span><span class="rate">&#8377;4.25 / sq.ft. / month</span></span>
       <span class="amt-wrap">
         <span class="amt num" id="r-new-base">&mdash;</span>
-        <span class="permonth num" id="r-new-base-monthly">&mdash;</span>
       </span>
     </div>
 
@@ -231,7 +237,6 @@
       <span class="label">GST @ 18%<span class="rate">applies &mdash; monthly maintenance exceeds &#8377;7,500</span></span>
       <span class="amt-wrap">
         <span class="amt num" id="r-gst">&mdash;</span>
-        <span class="permonth num" id="r-gst-monthly">&mdash;</span>
       </span>
     </div>
 
@@ -239,9 +244,10 @@
       <span class="label">Total payable per quarter <span class="period">(from Oct 2026)</span><span id="r-gst-badge"></span></span>
       <span class="amt-wrap">
         <span class="amt num" id="r-total">&mdash;</span>
-        <span class="permonth num" id="r-total-monthly">&mdash;</span>
       </span>
     </div>
+
+    <div class="monthly-guide" id="r-guide"></div>
   </div>
 </main>
 
@@ -253,9 +259,12 @@
 (function () {
   "use strict";
 
-  // Base64-encoded JSON: { "B2-1A": [area, oldMonthly, newMonthlyBase, gstMonthly], ... }
-  // Quarterly figures are always derived as monthly * 3 (never stored/rounded
-  // separately) so "per month" and "per quarter" can never disagree on screen.
+  // Base64-encoded JSON: { "B2-1A": [area, oldQuarterly, newQuarterlyBase, gstQuarterly], ... }
+  // Quarterly figures are computed directly (treasurer's rule, 2026-08-03):
+  // truncate(rate x area x 3 + 0.49) — NOT derived from a monthly figure.
+  // Monthly payers are shown a payment guide instead (see monthlyGuide()
+  // below) since the quarterly total doesn't always split into three equal
+  // rupee amounts.
   //
   // B4-10A note (2026-08-03): the RWA-RMS DB still has a data-entry typo for
   // this flat's area (1424 sqft) — all 9 other B4 A-wing flats are 1420. The
@@ -264,7 +273,7 @@
   // discussion (Q2 FY2026-27 was already collected at the uncorrected, higher
   // figure). Once the DB is corrected, regenerate this blob from the DB
   // directly and this note can go.
-  var BLOB = "eyJCMi0xQSI6WzE0MjUsNDYzMiw2MDU3LDBdLCJCMi0xQiI6WzE2OTEsNTQ5Niw3MTg3LDBdLCJCMi0xQyI6WzE2NjYsNTQxNSw3MDgxLDBdLCJCMi0xRCI6WzE0MTEsNDU4Niw1OTk3LDBdLCJCMi0yQSI6WzE0MTcsNDYwNiw2MDIzLDBdLCJCMi0yQiI6WzE0MzMsNDY1OCw2MDkxLDBdLCJCMi0yQyI6WzE0MjUsNDYzMiw2MDU3LDBdLCJCMi0yRCI6WzE0MTYsNDYwMiw2MDE4LDBdLCJCMi0zQSI6WzE0MTEsNDU4Niw1OTk3LDBdLCJCMi0zQiI6WzE0MzMsNDY1OCw2MDkxLDBdLCJCMi0zQyI6WzEzOTAsNDUxOCw1OTA4LDBdLCJCMi0zRCI6WzE0MTYsNDYwMiw2MDE4LDBdLCJCMi00QSI6WzE0MTEsNDU4Niw1OTk3LDBdLCJCMi00QiI6WzEzODIsNDQ5Miw1ODc0LDBdLCJCMi00QyI6WzE0MzMsNDY1OCw2MDkxLDBdLCJCMi00RCI6WzE0MjIsNDYyMiw2MDQ0LDBdLCJCMi01QSI6WzE0MjIsNDYyMiw2MDQ0LDBdLCJCMi01QiI6WzE0MzMsNDY1OCw2MDkxLDBdLCJCMi01QyI6WzE0MjUsNDYzMiw2MDU3LDBdLCJCMi01RCI6WzE0MTYsNDYwMiw2MDE4LDBdLCJCMi02QSI6WzE0MTEsNDU4Niw1OTk3LDBdLCJCMi02QiI6WzE0MjIsNDYyMiw2MDQ0LDBdLCJCMi02QyI6WzE0MjUsNDYzMiw2MDU3LDBdLCJCMi02RCI6WzE0MTAsNDU4Myw1OTkzLDBdLCJCMi03QSI6WzE0MzMsNDY1OCw2MDkxLDBdLCJCMi03QiI6WzE0MzMsNDY1OCw2MDkxLDBdLCJCMi03QyI6WzE0MjUsNDYzMiw2MDU3LDBdLCJCMi03RCI6WzE0MTYsNDYwMiw2MDE4LDBdLCJCMi04QSI6WzE0MzAsNDY0OCw2MDc4LDBdLCJCMi04QiI6WzE0MjIsNDYyMiw2MDQ0LDBdLCJCMi04QyI6WzE0MzMsNDY1OCw2MDkxLDBdLCJCMi04RCI6WzE0MTEsNDU4Niw1OTk3LDBdLCJCMi05QUQiOlsyMTAyLDY4MzIsODkzNCwxNjA5XSwiQjItOUJDIjpbMjE2NSw3MDM3LDkyMDIsMTY1N10sIkIzLTFBIjpbMTE2MiwzNzc3LDQ5MzksMF0sIkIzLTFCIjpbMTE5MiwzODc0LDUwNjYsMF0sIkIzLTFDIjpbMTE2MiwzNzc3LDQ5MzksMF0sIkIzLTFEIjpbMTE5MiwzODc0LDUwNjYsMF0sIkIzLTJBIjpbMTE2MiwzNzc3LDQ5MzksMF0sIkIzLTJCIjpbMTE3MiwzODA5LDQ5ODEsMF0sIkIzLTJDIjpbMTE0NywzNzI4LDQ4NzUsMF0sIkIzLTJEIjpbMTE5MiwzODc0LDUwNjYsMF0sIkIzLTNBIjpbMTE0NywzNzI4LDQ4NzUsMF0sIkIzLTNCIjpbMTE5MiwzODc0LDUwNjYsMF0sIkIzLTNDIjpbMTE2MiwzNzc3LDQ5MzksMF0sIkIzLTNEIjpbMTE5MiwzODc0LDUwNjYsMF0sIkIzLTRBIjpbMTE2OSwzODAwLDQ5NjksMF0sIkIzLTRCIjpbMTE5OSwzODk3LDUwOTYsMF0sIkIzLTRDIjpbMTE2OSwzODAwLDQ5NjksMF0sIkIzLTREIjpbMTE5OSwzODk3LDUwOTYsMF0sIkIzLTVBIjpbMTE2MiwzNzc3LDQ5MzksMF0sIkIzLTVCIjpbMTE3MiwzODA5LDQ5ODEsMF0sIkIzLTVDIjpbMTE2MiwzNzc3LDQ5MzksMF0sIkIzLTVEIjpbMTE5MiwzODc0LDUwNjYsMF0sIkIzLTZBIjpbMTIxMywzOTQzLDUxNTYsMF0sIkIzLTZCIjpbMTEzNCwzNjg2LDQ4MjAsMF0sIkIzLTZDIjpbMTE0NywzNzI4LDQ4NzUsMF0sIkIzLTZEIjpbMTE5MiwzODc0LDUwNjYsMF0sIkIzLTdBIjpbMTE0NywzNzI4LDQ4NzUsMF0sIkIzLTdCIjpbMTE5MiwzODc0LDUwNjYsMF0sIkIzLTdDIjpbMTE0NywzNzI4LDQ4NzUsMF0sIkIzLTdEIjpbMTE5MiwzODc0LDUwNjYsMF0sIkIzLThBIjpbMTE3NywzODI2LDUwMDMsMF0sIkIzLThCIjpbMTE3MiwzODA5LDQ5ODEsMF0sIkIzLThDIjpbMTE3NywzODI2LDUwMDMsMF0sIkIzLThEIjpbMTIwNiwzOTIwLDUxMjYsMF0sIkIzLTlBQiI6WzIxMzQsNjkzNiw5MDcwLDE2MzNdLCJCMy05Q0QiOlsyMjU5LDczNDIsOTYwMSwxNzI5XSwiQjQtMTBBIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTEwQiI6WzEwNzAsMzQ3OCw0NTQ4LDBdLCJCNC0xMEMiOlsxMDcyLDM0ODQsNDU1NiwwXSwiQjQtMTBEIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTFBIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTFCIjpbMTA1NywzNDM2LDQ0OTMsMF0sIkI0LTFDIjpbMTA3MiwzNDg0LDQ1NTYsMF0sIkI0LTFEIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTJBIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTJCIjpbMTA3MCwzNDc4LDQ1NDgsMF0sIkI0LTJDIjpbMTA3MiwzNDg0LDQ1NTYsMF0sIkI0LTJEIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTNBIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTNCIjpbMTA3MCwzNDc4LDQ1NDgsMF0sIkI0LTNDIjpbMTA3MiwzNDg0LDQ1NTYsMF0sIkI0LTNEIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTRBIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTRCIjpbMTA3MCwzNDc4LDQ1NDgsMF0sIkI0LTRDIjpbMTA3MiwzNDg0LDQ1NTYsMF0sIkI0LTREIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTVBIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTVCIjpbMTA1NywzNDM2LDQ0OTMsMF0sIkI0LTVDIjpbMTA1NywzNDM2LDQ0OTMsMF0sIkI0LTVEIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTZBIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTZCIjpbMTA3MCwzNDc4LDQ1NDgsMF0sIkI0LTZDIjpbMTA3MiwzNDg0LDQ1NTYsMF0sIkI0LTZEIjpbMTQ1MCw0NzEzLDYxNjMsMF0sIkI0LTdBIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTdCIjpbMTA3MCwzNDc4LDQ1NDgsMF0sIkI0LTdDIjpbMTA3MiwzNDg0LDQ1NTYsMF0sIkI0LTdEIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LThBIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LThCIjpbMTA3MCwzNDc4LDQ1NDgsMF0sIkI0LThDIjpbMTA1NiwzNDMyLDQ0ODgsMF0sIkI0LThEIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTlBIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI0LTlCIjpbMTA3MCwzNDc4LDQ1NDgsMF0sIkI0LTlDIjpbMTA3MiwzNDg0LDQ1NTYsMF0sIkI0LTlEIjpbMTQyMCw0NjE1LDYwMzUsMF0sIkI1LTEwQSI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS0xMEIiOlsxMDU3LDM0MzYsNDQ5MywwXSwiQjUtMTBDIjpbMTA3MiwzNDg0LDQ1NTYsMF0sIkI1LTEwRCI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS0xQSI6WzE0MjksNDY0NSw2MDc0LDBdLCJCNS0xQiI6WzEwNzAsMzQ3OCw0NTQ4LDBdLCJCNS0xQyI6WzEwNzIsMzQ4NCw0NTU2LDBdLCJCNS0xRCI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS0yQSI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS0yQiI6WzEwNjQsMzQ1OCw0NTIyLDBdLCJCNS0yQyI6WzEwNzIsMzQ4NCw0NTU2LDBdLCJCNS0yRCI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS0zQSI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS0zQiI6WzEwNzAsMzQ3OCw0NTQ4LDBdLCJCNS0zQyI6WzEwNzIsMzQ4NCw0NTU2LDBdLCJCNS0zRCI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS00QSI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS00QiI6WzEwNzAsMzQ3OCw0NTQ4LDBdLCJCNS00QyI6WzEwNzIsMzQ4NCw0NTU2LDBdLCJCNS00RCI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS01QSI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS01QiI6WzEwNzAsMzQ3OCw0NTQ4LDBdLCJCNS01QyI6WzEwNzIsMzQ4NCw0NTU2LDBdLCJCNS01RCI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS02QSI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS02QiI6WzEwNzAsMzQ3OCw0NTQ4LDBdLCJCNS02QyI6WzEwNzIsMzQ4NCw0NTU2LDBdLCJCNS02RCI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS03QSI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS03QiI6WzEwNjQsMzQ1OCw0NTIyLDBdLCJCNS03QyI6WzEwNzIsMzQ4NCw0NTU2LDBdLCJCNS03RCI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS04QSI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS04QiI6WzEwNzAsMzQ3OCw0NTQ4LDBdLCJCNS04QyI6WzEwNzIsMzQ4NCw0NTU2LDBdLCJCNS04RCI6WzE0MjksNDY0NSw2MDc0LDBdLCJCNS05QSI6WzE0MjAsNDYxNSw2MDM1LDBdLCJCNS05QiI6WzEwNzAsMzQ3OCw0NTQ4LDBdLCJCNS05QyI6WzEwNzIsMzQ4NCw0NTU2LDBdLCJCNS05RCI6WzE0MjAsNDYxNSw2MDM1LDBdfQ==";
+  var BLOB = "eyJCMi0xQSI6WzE0MjUsMTM4OTQsMTgxNjksMF0sIkIyLTFCIjpbMTY5MSwxNjQ4NywyMTU2MCwwXSwiQjItMUMiOlsxNjY2LDE2MjQzLDIxMjQxLDBdLCJCMi0xRCI6WzE0MTEsMTM3NTcsMTc5OTAsMF0sIkIyLTJBIjpbMTQxNywxMzgxNiwxODA2NywwXSwiQjItMkIiOlsxNDMzLDEzOTcyLDE4MjcxLDBdLCJCMi0yQyI6WzE0MjUsMTM4OTQsMTgxNjksMF0sIkIyLTJEIjpbMTQxNiwxMzgwNiwxODA1NCwwXSwiQjItM0EiOlsxNDExLDEzNzU3LDE3OTkwLDBdLCJCMi0zQiI6WzE0MzMsMTM5NzIsMTgyNzEsMF0sIkIyLTNDIjpbMTM5MCwxMzU1MiwxNzcyMiwwXSwiQjItM0QiOlsxNDE2LDEzODA2LDE4MDU0LDBdLCJCMi00QSI6WzE0MTEsMTM3NTcsMTc5OTAsMF0sIkIyLTRCIjpbMTM4MiwxMzQ3NCwxNzYyMCwwXSwiQjItNEMiOlsxNDMzLDEzOTcyLDE4MjcxLDBdLCJCMi00RCI6WzE0MjIsMTM4NjQsMTgxMzAsMF0sIkIyLTVBIjpbMTQyMiwxMzg2NCwxODEzMCwwXSwiQjItNUIiOlsxNDMzLDEzOTcyLDE4MjcxLDBdLCJCMi01QyI6WzE0MjUsMTM4OTQsMTgxNjksMF0sIkIyLTVEIjpbMTQxNiwxMzgwNiwxODA1NCwwXSwiQjItNkEiOlsxNDExLDEzNzU3LDE3OTkwLDBdLCJCMi02QiI6WzE0MjIsMTM4NjQsMTgxMzAsMF0sIkIyLTZDIjpbMTQyNSwxMzg5NCwxODE2OSwwXSwiQjItNkQiOlsxNDEwLDEzNzQ3LDE3OTc3LDBdLCJCMi03QSI6WzE0MzMsMTM5NzIsMTgyNzEsMF0sIkIyLTdCIjpbMTQzMywxMzk3MiwxODI3MSwwXSwiQjItN0MiOlsxNDI1LDEzODk0LDE4MTY5LDBdLCJCMi03RCI6WzE0MTYsMTM4MDYsMTgwNTQsMF0sIkIyLThBIjpbMTQzMCwxMzk0MiwxODIzMiwwXSwiQjItOEIiOlsxNDIyLDEzODY0LDE4MTMwLDBdLCJCMi04QyI6WzE0MzMsMTM5NzIsMTgyNzEsMF0sIkIyLThEIjpbMTQxMSwxMzc1NywxNzk5MCwwXSwiQjItOUFEIjpbMjEwMiwyMDQ5NCwyNjgwMCw0ODI0XSwiQjItOUJDIjpbMjE2NSwyMTEwOSwyNzYwNCw0OTY5XSwiQjMtMUEiOlsxMTYyLDExMzI5LDE0ODE1LDBdLCJCMy0xQiI6WzExOTIsMTE2MjIsMTUxOTgsMF0sIkIzLTFDIjpbMTE2MiwxMTMyOSwxNDgxNSwwXSwiQjMtMUQiOlsxMTkyLDExNjIyLDE1MTk4LDBdLCJCMy0yQSI6WzExNjIsMTEzMjksMTQ4MTUsMF0sIkIzLTJCIjpbMTE3MiwxMTQyNywxNDk0MywwXSwiQjMtMkMiOlsxMTQ3LDExMTgzLDE0NjI0LDBdLCJCMy0yRCI6WzExOTIsMTE2MjIsMTUxOTgsMF0sIkIzLTNBIjpbMTE0NywxMTE4MywxNDYyNCwwXSwiQjMtM0IiOlsxMTkyLDExNjIyLDE1MTk4LDBdLCJCMy0zQyI6WzExNjIsMTEzMjksMTQ4MTUsMF0sIkIzLTNEIjpbMTE5MiwxMTYyMiwxNTE5OCwwXSwiQjMtNEEiOlsxMTY5LDExMzk4LDE0OTA1LDBdLCJCMy00QiI6WzExOTksMTE2OTAsMTUyODcsMF0sIkIzLTRDIjpbMTE2OSwxMTM5OCwxNDkwNSwwXSwiQjMtNEQiOlsxMTk5LDExNjkwLDE1Mjg3LDBdLCJCMy01QSI6WzExNjIsMTEzMjksMTQ4MTUsMF0sIkIzLTVCIjpbMTE3MiwxMTQyNywxNDk0MywwXSwiQjMtNUMiOlsxMTYyLDExMzI5LDE0ODE1LDBdLCJCMy01RCI6WzExOTIsMTE2MjIsMTUxOTgsMF0sIkIzLTZBIjpbMTIxMywxMTgyNywxNTQ2NiwwXSwiQjMtNkIiOlsxMTM0LDExMDU2LDE0NDU4LDBdLCJCMy02QyI6WzExNDcsMTExODMsMTQ2MjQsMF0sIkIzLTZEIjpbMTE5MiwxMTYyMiwxNTE5OCwwXSwiQjMtN0EiOlsxMTQ3LDExMTgzLDE0NjI0LDBdLCJCMy03QiI6WzExOTIsMTE2MjIsMTUxOTgsMF0sIkIzLTdDIjpbMTE0NywxMTE4MywxNDYyNCwwXSwiQjMtN0QiOlsxMTkyLDExNjIyLDE1MTk4LDBdLCJCMy04QSI6WzExNzcsMTE0NzYsMTUwMDcsMF0sIkIzLThCIjpbMTE3MiwxMTQyNywxNDk0MywwXSwiQjMtOEMiOlsxMTc3LDExNDc2LDE1MDA3LDBdLCJCMy04RCI6WzEyMDYsMTE3NTgsMTUzNzYsMF0sIkIzLTlBQiI6WzIxMzQsMjA4MDYsMjcyMDgsNDg5N10sIkIzLTlDRCI6WzIyNTksMjIwMjUsMjg4MDIsNTE4NF0sIkI0LTEwQSI6WzE0MjAsMTM4NDUsMTgxMDUsMF0sIkI0LTEwQiI6WzEwNzAsMTA0MzIsMTM2NDIsMF0sIkI0LTEwQyI6WzEwNzIsMTA0NTIsMTM2NjgsMF0sIkI0LTEwRCI6WzE0MjAsMTM4NDUsMTgxMDUsMF0sIkI0LTFBIjpbMTQyMCwxMzg0NSwxODEwNSwwXSwiQjQtMUIiOlsxMDU3LDEwMzA2LDEzNDc3LDBdLCJCNC0xQyI6WzEwNzIsMTA0NTIsMTM2NjgsMF0sIkI0LTFEIjpbMTQyMCwxMzg0NSwxODEwNSwwXSwiQjQtMkEiOlsxNDIwLDEzODQ1LDE4MTA1LDBdLCJCNC0yQiI6WzEwNzAsMTA0MzIsMTM2NDIsMF0sIkI0LTJDIjpbMTA3MiwxMDQ1MiwxMzY2OCwwXSwiQjQtMkQiOlsxNDIwLDEzODQ1LDE4MTA1LDBdLCJCNC0zQSI6WzE0MjAsMTM4NDUsMTgxMDUsMF0sIkI0LTNCIjpbMTA3MCwxMDQzMiwxMzY0MiwwXSwiQjQtM0MiOlsxMDcyLDEwNDUyLDEzNjY4LDBdLCJCNC0zRCI6WzE0MjAsMTM4NDUsMTgxMDUsMF0sIkI0LTRBIjpbMTQyMCwxMzg0NSwxODEwNSwwXSwiQjQtNEIiOlsxMDcwLDEwNDMyLDEzNjQyLDBdLCJCNC00QyI6WzEwNzIsMTA0NTIsMTM2NjgsMF0sIkI0LTREIjpbMTQyMCwxMzg0NSwxODEwNSwwXSwiQjQtNUEiOlsxNDIwLDEzODQ1LDE4MTA1LDBdLCJCNC01QiI6WzEwNTcsMTAzMDYsMTM0NzcsMF0sIkI0LTVDIjpbMTA1NywxMDMwNiwxMzQ3NywwXSwiQjQtNUQiOlsxNDIwLDEzODQ1LDE4MTA1LDBdLCJCNC02QSI6WzE0MjAsMTM4NDUsMTgxMDUsMF0sIkI0LTZCIjpbMTA3MCwxMDQzMiwxMzY0MiwwXSwiQjQtNkMiOlsxMDcyLDEwNDUyLDEzNjY4LDBdLCJCNC02RCI6WzE0NTAsMTQxMzcsMTg0ODcsMF0sIkI0LTdBIjpbMTQyMCwxMzg0NSwxODEwNSwwXSwiQjQtN0IiOlsxMDcwLDEwNDMyLDEzNjQyLDBdLCJCNC03QyI6WzEwNzIsMTA0NTIsMTM2NjgsMF0sIkI0LTdEIjpbMTQyMCwxMzg0NSwxODEwNSwwXSwiQjQtOEEiOlsxNDIwLDEzODQ1LDE4MTA1LDBdLCJCNC04QiI6WzEwNzAsMTA0MzIsMTM2NDIsMF0sIkI0LThDIjpbMTA1NiwxMDI5NiwxMzQ2NCwwXSwiQjQtOEQiOlsxNDIwLDEzODQ1LDE4MTA1LDBdLCJCNC05QSI6WzE0MjAsMTM4NDUsMTgxMDUsMF0sIkI0LTlCIjpbMTA3MCwxMDQzMiwxMzY0MiwwXSwiQjQtOUMiOlsxMDcyLDEwNDUyLDEzNjY4LDBdLCJCNC05RCI6WzE0MjAsMTM4NDUsMTgxMDUsMF0sIkI1LTEwQSI6WzE0MjAsMTM4NDUsMTgxMDUsMF0sIkI1LTEwQiI6WzEwNTcsMTAzMDYsMTM0NzcsMF0sIkI1LTEwQyI6WzEwNzIsMTA0NTIsMTM2NjgsMF0sIkI1LTEwRCI6WzE0MjAsMTM4NDUsMTgxMDUsMF0sIkI1LTFBIjpbMTQyOSwxMzkzMywxODIyMCwwXSwiQjUtMUIiOlsxMDcwLDEwNDMyLDEzNjQyLDBdLCJCNS0xQyI6WzEwNzIsMTA0NTIsMTM2NjgsMF0sIkI1LTFEIjpbMTQyMCwxMzg0NSwxODEwNSwwXSwiQjUtMkEiOlsxNDIwLDEzODQ1LDE4MTA1LDBdLCJCNS0yQiI6WzEwNjQsMTAzNzQsMTM1NjYsMF0sIkI1LTJDIjpbMTA3MiwxMDQ1MiwxMzY2OCwwXSwiQjUtMkQiOlsxNDIwLDEzODQ1LDE4MTA1LDBdLCJCNS0zQSI6WzE0MjAsMTM4NDUsMTgxMDUsMF0sIkI1LTNCIjpbMTA3MCwxMDQzMiwxMzY0MiwwXSwiQjUtM0MiOlsxMDcyLDEwNDUyLDEzNjY4LDBdLCJCNS0zRCI6WzE0MjAsMTM4NDUsMTgxMDUsMF0sIkI1LTRBIjpbMTQyMCwxMzg0NSwxODEwNSwwXSwiQjUtNEIiOlsxMDcwLDEwNDMyLDEzNjQyLDBdLCJCNS00QyI6WzEwNzIsMTA0NTIsMTM2NjgsMF0sIkI1LTREIjpbMTQyMCwxMzg0NSwxODEwNSwwXSwiQjUtNUEiOlsxNDIwLDEzODQ1LDE4MTA1LDBdLCJCNS01QiI6WzEwNzAsMTA0MzIsMTM2NDIsMF0sIkI1LTVDIjpbMTA3MiwxMDQ1MiwxMzY2OCwwXSwiQjUtNUQiOlsxNDIwLDEzODQ1LDE4MTA1LDBdLCJCNS02QSI6WzE0MjAsMTM4NDUsMTgxMDUsMF0sIkI1LTZCIjpbMTA3MCwxMDQzMiwxMzY0MiwwXSwiQjUtNkMiOlsxMDcyLDEwNDUyLDEzNjY4LDBdLCJCNS02RCI6WzE0MjAsMTM4NDUsMTgxMDUsMF0sIkI1LTdBIjpbMTQyMCwxMzg0NSwxODEwNSwwXSwiQjUtN0IiOlsxMDY0LDEwMzc0LDEzNTY2LDBdLCJCNS03QyI6WzEwNzIsMTA0NTIsMTM2NjgsMF0sIkI1LTdEIjpbMTQyMCwxMzg0NSwxODEwNSwwXSwiQjUtOEEiOlsxNDIwLDEzODQ1LDE4MTA1LDBdLCJCNS04QiI6WzEwNzAsMTA0MzIsMTM2NDIsMF0sIkI1LThDIjpbMTA3MiwxMDQ1MiwxMzY2OCwwXSwiQjUtOEQiOlsxNDI5LDEzOTMzLDE4MjIwLDBdLCJCNS05QSI6WzE0MjAsMTM4NDUsMTgxMDUsMF0sIkI1LTlCIjpbMTA3MCwxMDQzMiwxMzY0MiwwXSwiQjUtOUMiOlsxMDcyLDEwNDUyLDEzNjY4LDBdLCJCNS05RCI6WzE0MjAsMTM4NDUsMTgxMDUsMF19";
 
   var DATA = JSON.parse(decodeURIComponent(escape(atob(BLOB))));
 
@@ -369,9 +378,21 @@
     return "₹ " + n.toLocaleString("en-IN");
   }
 
-  function setLine(prefix, monthly) {
-    document.getElementById(prefix).textContent = formatRupees(monthly * 3);
-    document.getElementById(prefix + "-monthly").textContent = formatRupees(monthly) + " / month";
+  // Treasurer's rule (2026-08-03): the quarterly figure is computed directly
+  // (truncate(rate x area x 3 + 0.49) — done server-side, baked into the
+  // blob) and does NOT always split evenly into three monthly payments. A
+  // resident paying monthly pays Rs.1 extra in 1 or 2 of the 3 months —
+  // whichever month(s) they choose — so the three payments sum exactly to
+  // the quarterly total.
+  function monthlyGuideText(quarterly) {
+    var base = Math.floor(quarterly / 3);
+    var extraMonths = quarterly - base * 3; // 0, 1, or 2
+    if (extraMonths === 0) {
+      return "Paying monthly? " + formatRupees(base) + " in each of the 3 months.";
+    }
+    return "Paying monthly? " + formatRupees(base) + " in " + (3 - extraMonths) +
+      " month(s), and " + formatRupees(base + 1) + " in " + extraMonths +
+      " month(s) — any " + extraMonths + " of the 3, your choice — so the three add up to the total.";
   }
 
   btnShow.addEventListener("click", function () {
@@ -382,27 +403,29 @@
       resetResult();
       return;
     }
-    // Every quarterly figure below is monthly * 3 — never rounded separately —
-    // so "per month" and "per quarter" always agree exactly.
-    var area = row[0], oldMonthly = row[1], newBaseMonthly = row[2], gstMonthly = row[3];
-    var totalMonthly = newBaseMonthly + gstMonthly;
+    var area = row[0], oldQuarterly = row[1], newBaseQuarterly = row[2], gstQuarterly = row[3];
+    var totalQuarterly = newBaseQuarterly + gstQuarterly;
 
     document.getElementById("r-flat").textContent = flatId;
     document.getElementById("r-area").textContent = area.toLocaleString("en-IN") + " sq.ft.";
-    setLine("r-old", oldMonthly);
-    setLine("r-new-base", newBaseMonthly);
+    document.getElementById("r-old").textContent = formatRupees(oldQuarterly);
+    document.getElementById("r-new-base").textContent = formatRupees(newBaseQuarterly);
 
     var gstRow = document.getElementById("r-gst-row");
     var gstBadge = document.getElementById("r-gst-badge");
-    if (gstMonthly > 0) {
+    if (gstQuarterly > 0) {
       gstRow.style.display = "flex";
-      setLine("r-gst", gstMonthly);
+      document.getElementById("r-gst").textContent = formatRupees(gstQuarterly);
       gstBadge.innerHTML = '<span class="badge-gst">GST applies</span>';
     } else {
       gstRow.style.display = "none";
       gstBadge.innerHTML = "";
     }
-    setLine("r-total", totalMonthly);
+    document.getElementById("r-total").textContent = formatRupees(totalQuarterly);
+
+    var guide = document.getElementById("r-guide");
+    guide.textContent = monthlyGuideText(totalQuarterly);
+    guide.classList.add("show");
 
     result.classList.remove("show");
     // Force reflow so the reveal animation re-triggers on repeated clicks.
