@@ -53,7 +53,9 @@ ARWA-Documents/
 ├── Good-Living-Guidelines/
 │   ├── ARWA-Good-Living-Guidelines.pdf
 │   └── ARWA-Good-Living-Guidelines-Latest.pdf   git symlink -> file above
-├── AGM-Minutes/                     README.md only so far — no minutes uploaded yet
+├── AGM-Minutes/
+│   └── ARWA-AGM-Slides-2026-08-02.pdf   presentation slides, not minutes
+│                                    (minutes themselves not yet finalized/uploaded)
 ├── Audited-Balance-Sheets/
 │   ├── ARWA-Balance-Sheet-FY2022-23.pdf
 │   ├── ARWA-Balance-Sheet-FY2023-24.pdf
