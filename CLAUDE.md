@@ -213,31 +213,30 @@ plus GST @18% where it applies.
   Block 2, `9AB`/`9CD` in Block 3 — two flats merged into one, so a single
   two-letter wing rather than four separate ones) fall out naturally with no
   special-casing.
-- **Monthly-first rounding**: the blob stores only the *monthly* charge
-  (rounded up to the nearest rupee) for old, new-base, and GST; every
-  quarterly figure shown on the page is computed client-side as
-  `monthly * 3`, never rounded independently. This guarantees a resident
-  paying monthly and one paying quarterly always see figures that tie out
-  exactly (`monthly × 3 == quarterly`, by construction, verified across all
-  148 flats). The companion review spreadsheet in the RWA-RMS repo
-  (`Members-Database/Maintenance_Charge_Revision_Oct2026.xlsx`) uses the same
-  convention, so the two documents' figures agree.
+- **Rounding — treasurer's rule, corrected 2026-08-04**: the blob stores the
+  *quarterly* charge directly (old, new-base, GST), computed as plain
+  round-half-up to the nearest rupee (`x.50` rounds up) — **not** derived
+  from a monthly figure. A quarter's total doesn't always split evenly into
+  three equal monthly payments, so the page shows a payment-guide callout
+  under the total instead (e.g. "₹X in 2 months + ₹X+1 in 1 month") — see
+  `monthlyGuideText()` in the page's own JS. Earlier drafts of this page (i)
+  stored monthly and derived quarterly as `monthly × 3`, and (ii) briefly
+  used a `truncate(x + 0.49)` threshold (misreading the treasurer's ".50" as
+  ".51") — both superseded; the companion review spreadsheet in the RWA-RMS
+  repo (`Members-Database/Maintenance_Charge_Revision_Oct2026.xlsx`) and
+  `rwa_rms.db` itself (`flat_balance.truncate_round()`,
+  `update_maintenance_rate.py`) all use this same round-half-up rule now, so
+  every figure across all three agrees.
 - **GST threshold**: 18% GST applies where the *new* monthly maintenance
   exceeds ₹7,500 (CGST/SGST rule on society maintenance). At the new rate
   this affects exactly 4 flats — all penthouses — `B2-9AD`, `B2-9BC`,
   `B3-9AB`, `B3-9CD`; none crossed the threshold at the old rate.
-- **`B4-10A` area override (2026-08-03)**: the blob shows this flat's area as
-  1420 sq.ft. (matching all 9 other B4 A-wing flats), **not** the 1424 the
-  RWA-RMS DB (`flats.flat_area`) currently holds — a data-entry typo present
-  since that DB's initial ingestion, confirmed by comparison against every
-  other B4 A-wing flat and by the fact that no `flat_history` row ever
-  changed it. Fixing the DB column itself is deferred pending a discussion
-  with accounts about whether Tally's own records need the same correction
-  (a Q2 FY2026-27 maintenance receipt for this flat already shows the
-  uncorrected, higher figure was actually collected). **Remove this note and
-  the corresponding hand-edit once `flats.flat_area` is corrected in the DB**
-  — at that point regenerating the blob from the DB directly will produce
-  the same 1420 figure with no override needed.
+- **`B4-10A`'s area** (a data-entry typo — was 1424 in the DB, corrected
+  2026-08-03 to 1420, matching all 9 other B4 A-wing flats) is now read
+  straight from `rwa_rms.db` like every other flat — no manual override in
+  this page's generation script anymore. (An interim override existed
+  2026-08-03/04 while the DB-side fix was pending; removed once
+  `flats.flat_area` itself was corrected.)
 
 ---
 
