@@ -224,6 +224,18 @@ plus GST @18% where it applies.
   exceeds ₹7,500 (CGST/SGST rule on society maintenance). At the new rate
   this affects exactly 4 flats — all penthouses — `B2-9AD`, `B2-9BC`,
   `B3-9AB`, `B3-9CD`; none crossed the threshold at the old rate.
+- **`B4-10A` area override (2026-08-03)**: the blob shows this flat's area as
+  1420 sq.ft. (matching all 9 other B4 A-wing flats), **not** the 1424 the
+  RWA-RMS DB (`flats.flat_area`) currently holds — a data-entry typo present
+  since that DB's initial ingestion, confirmed by comparison against every
+  other B4 A-wing flat and by the fact that no `flat_history` row ever
+  changed it. Fixing the DB column itself is deferred pending a discussion
+  with accounts about whether Tally's own records need the same correction
+  (a Q2 FY2026-27 maintenance receipt for this flat already shows the
+  uncorrected, higher figure was actually collected). **Remove this note and
+  the corresponding hand-edit once `flats.flat_area` is corrected in the DB**
+  — at that point regenerating the blob from the DB directly will produce
+  the same 1420 figure with no override needed.
 
 ---
 
