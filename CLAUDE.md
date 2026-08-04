@@ -149,10 +149,11 @@ are only valid for the term shown. Update both the roster and the date after eve
 AGM (the association elects a new Management Committee at each one) — there's no
 automation for this; it's a static table, edited by hand.
 
-Current committee (set 2026-07-29, valid until the AGM on 02-Aug-2026): President
-Asokamani (B3-6A), Vice President Sriram (B5-9A), Secretary Sankar (B5-3C),
-Treasurer Chandrasekaran (B4-10A), Members Anantha Lakshmi (B4-5C), Murali (B2-7A),
-Ashok (B5-4D).
+Current committee (elected at the AGM on 02-Aug-2026, term Aug 2026&ndash;Aug 2029):
+President Sriram (B5-9A), Vice President S Ganesan (B3-3B), Secretary
+Sankaranarayanan B. (B5-3C), Treasurer K Chandrasekaran (B4-10A), Members Uma
+Maheswari (B2-4A), L R Murali (B2-7A), Anantha Lakshmi (B4-5C), Ramasubramanian K
+(B2-3A), Chandramouli (B4-4D).
 
 **No personal contact info** (phone numbers, personal emails) belongs on this page —
 only names, roles, and flat IDs for the committee, and the association's own email
