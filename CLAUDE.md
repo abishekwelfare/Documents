@@ -65,7 +65,10 @@ ARWA-Documents/
 │                                    calculator, self-contained (Base64 JSON
 │                                    blob of area/charge data, no server) —
 │                                    see below
-├── Circulars-Notices/                README.md only so far
+├── Circulars-Notices/
+│   └── ARWA-Circular-2019-07-22-GST-on-Maintenance-Charges.pdf   CBIC
+│                                    Circular No.109/28/2019-GST, linked
+│                                    from index.html
 ├── Committee-Resolutions/            README.md only so far
 └── Forms/                            README.md only so far
 ```
