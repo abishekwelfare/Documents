@@ -51,8 +51,10 @@ ARWA-Documents/
 │   │                                member of owner now MC-eligible)
 │   └── ARWA-Bye-Laws-Latest.pdf     git symlink -> v1.1 file above
 ├── Good-Living-Guidelines/
-│   ├── ARWA-Good-Living-Guidelines.pdf
-│   └── ARWA-Good-Living-Guidelines-Latest.pdf   git symlink -> file above
+│   ├── ARWA-Good-Living-Guidelines_v1.0.pdf     original
+│   ├── ARWA-Good-Living-Guidelines_v1.1.pdf     effective 13-Oct-2026 —
+│   │                                cover page, Annexure A (pet rules)
+│   └── ARWA-Good-Living-Guidelines-Latest.pdf   git symlink -> v1.1 file above
 ├── AGM-Minutes/
 │   ├── ARWA-AGM-Minutes-FY2025-26.pdf   final minutes, AGM held 02-Aug-2026
 │   └── ARWA-AGM-Slides-2026-08-02.pdf   presentation slides from that AGM
@@ -102,6 +104,13 @@ git update-index --add --cacheinfo 120000,$SHA,Bye-Laws/ARWA-Bye-Laws-Latest.pdf
 git commit -m "Update latest Bye-Laws to <date>"
 git push
 ```
+
+**Run this in Bash, never PowerShell.** Piping the filename through PowerShell
+(`"X.pdf" | git hash-object -w --stdin`) prepends a UTF-8 BOM and appends a
+newline, so the symlink target becomes `﻿X.pdf\n` — a broken link that
+`git diff --stat` won't flag. Happened once (2026-10-22, Good Living v1.1) and was
+caught before commit. Verify the target bytes before committing:
+`git cat-file -p <SHA> | od -c` — should be exactly the filename, nothing else.
 
 **Critical gotcha**: this only touches the git **index**, not the working tree —
 there's no actual file at `Bye-Laws/ARWA-Bye-Laws-Latest.pdf` on disk, only an index
@@ -243,6 +252,31 @@ plus GST @18% where it applies.
   `flats.flat_area` itself was corrected.)
 
 ---
+
+## Good Living Document — versioning and source (added 2026-10-22)
+
+- **Filename convention**: every version keeps its own file with a `_vX.Y` suffix
+  (`ARWA-Good-Living-Guidelines_v1.0.pdf`, `_v1.1.pdf`, ...) so any earlier version
+  stays linkable; never overwrite or delete an old version. `index.html`'s "All
+  Documents" list links each version; `-Latest.pdf` points at the newest.
+- **v1.0** is the original PDF (no editable source exists). **v1.1** (effective
+  13-Oct-2026) added a cover page (title, "Issued by ARWA Management Committee",
+  version, effective-from date, one-line change summary), Annexure A — Pet Rules
+  and Coexistence Guidelines (Part A rules for pet owners, Part B guidelines for
+  all residents, from RWA-RMS `templates/pet_rules_oct2026.txt` minus the
+  email-only bits like the registration deadline/form link), and a sentence in
+  Rule 17 making Annexure A part of the rules. Minor typo fixes in rules 1–38
+  ("By_-laws" → "Bye-laws" etc.); wording otherwise unchanged.
+- **Editable source**: `ARWA-Good-Living-Guidelines_v1.1-source.html` — a
+  self-contained HTML page (A4 print CSS). For v1.2, copy it to
+  `_v1.2-source.html`, edit (bump the cover's version/date/change line), then print
+  to PDF with headless Edge:
+  ```powershell
+  & "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --headless --disable-gpu --no-pdf-header-footer --print-to-pdf="<abs path>\ARWA-Good-Living-Guidelines_v1.2.pdf" "file:///<abs path>/ARWA-Good-Living-Guidelines_v1.2-source.html"
+  ```
+  (`reportlab` isn't installed on this machine; Edge is the PDF renderer.) Check
+  the rendered pages visually for orphaned headings before committing.
+- The source HTML isn't linked from `index.html` — it's for maintainers, not residents.
 
 ## Adding a new document — checklist
 
