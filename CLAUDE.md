@@ -71,6 +71,8 @@ ARWA-Documents/
 │   └── ARWA-Circular-2019-07-22-GST-on-Maintenance-Charges.pdf   CBIC
 │                                    Circular No.109/28/2019-GST, linked
 │                                    from index.html
+├── Statutory-Documents/
+│   └── ARWA-GST-Registration-Certificate-2026-10-15.pdf   GSTIN 33AABAA3212A1ZW
 ├── Committee-Resolutions/            README.md only so far
 └── Forms/                            README.md only so far
 ```
