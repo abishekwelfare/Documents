@@ -72,6 +72,8 @@ ARWA-Documents/
 │                                    Circular No.109/28/2019-GST, linked
 │                                    from index.html
 ├── Statutory-Documents/
+│   ├── ARWA-Society-Registration-Certificate-2009-05-29.pdf   TN Societies
+│   │                                Registration Act 1975, Sl. No. 294 of 2009
 │   └── ARWA-GST-Registration-Certificate-2026-10-15.pdf   GSTIN 33AABAA3212A1ZW
 ├── Committee-Resolutions/            README.md only so far
 └── Forms/                            README.md only so far
